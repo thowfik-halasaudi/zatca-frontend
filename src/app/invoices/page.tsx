@@ -372,7 +372,7 @@ export default function InvoicesPage() {
                           <input
                             type="number"
                             {...register(`lineItems.${index}.vatPercent`)}
-                            className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm text-center font-semibold bg-blue-50 border-blue-100 focus:outline-none cursor-not-allowed"
+                            className="w-full px-4 py-2.5 border rounded-lg text-sm text-center font-semibold bg-blue-50 border-blue-100 focus:outline-none cursor-not-allowed"
                             readOnly
                             defaultValue={15}
                           />
