@@ -107,14 +107,6 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Connector Line */}
-              <div className="flex gap-6">
-                <div className="shrink-0 flex justify-center w-12">
-                  <div className="w-0.5 h-8 bg-gray-200"></div>
-                </div>
-                <div></div>
-              </div>
-
               {/* Step 2 */}
               <div className="flex gap-6">
                 <div className="shrink-0">
@@ -139,14 +131,6 @@ export default function Home() {
                     private key securely - it's used to sign invoices.
                   </div>
                 </div>
-              </div>
-
-              {/* Connector Line */}
-              <div className="flex gap-6">
-                <div className="shrink-0 flex justify-center w-12">
-                  <div className="w-0.5 h-8 bg-gray-200"></div>
-                </div>
-                <div></div>
               </div>
 
               {/* Step 3 */}
@@ -176,14 +160,6 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Connector Line */}
-              <div className="flex gap-6">
-                <div className="shrink-0 flex justify-center w-12">
-                  <div className="w-0.5 h-8 bg-gray-200"></div>
-                </div>
-                <div></div>
-              </div>
-
               {/* Step 4 */}
               <div className="flex gap-6">
                 <div className="shrink-0">
@@ -211,14 +187,6 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Connector Line */}
-              <div className="flex gap-6">
-                <div className="shrink-0 flex justify-center w-12">
-                  <div className="w-0.5 h-8 bg-gray-200"></div>
-                </div>
-                <div></div>
-              </div>
-
               {/* Step 5 */}
               <div className="flex gap-6">
                 <div className="shrink-0">
@@ -244,14 +212,6 @@ export default function Home() {
                     code (Base64), and clearance status.
                   </div>
                 </div>
-              </div>
-
-              {/* Connector Line */}
-              <div className="flex gap-6">
-                <div className="shrink-0 flex justify-center w-12">
-                  <div className="w-0.5 h-8 bg-gray-200"></div>
-                </div>
-                <div></div>
               </div>
 
               {/* Step 6 */}
