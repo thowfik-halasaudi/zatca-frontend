@@ -126,6 +126,7 @@ export interface CsidResponse {
 
 export interface SignResponse {
   signedXml: string;
+  qrCode?: string;
   fileName: string;
   message: string;
 }

@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { invoiceApi, complianceApi } from "@/lib/api-client";
 import type { SignInvoiceDto, EgsListItem } from "@/lib/types";
+import { QRCodeCanvas } from "qrcode.react";
+import { useState, useEffect } from "react";
 
 export default function InvoicesPage() {
   const [loading, setLoading] = useState(false);
@@ -528,26 +529,61 @@ export default function InvoicesPage() {
 
             {/* Response Box */}
             {response && (
-              <div className="bg-gray-900 rounded-xl p-6 border border-gray-800 shadow-lg">
-                <div className="flex items-center justify-between mb-4">
-                  <span className="text-xs font-semibold text-blue-400 uppercase tracking-wide">
-                    Signing Response
-                  </span>
-                  <div className="w-2 h-2 rounded-full bg-green-500"></div>
+              <div className="bg-gray-900 rounded-xl overflow-hidden border border-gray-800 shadow-xl">
+                <div className="bg-gray-800 px-6 py-4 border-b border-gray-700 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                    <span className="text-xs font-bold text-gray-300 uppercase tracking-widest">
+                      Signing Successful
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(response.signedXml);
+                      alert("Signed XML copied to clipboard!");
+                    }}
+                    type="button"
+                    className="text-[10px] font-bold text-blue-400 hover:text-blue-300 uppercase tracking-wider transition-colors"
+                  >
+                    Copy XML
+                  </button>
                 </div>
-                <div className="overflow-auto max-h-[400px]">
-                  <div className="space-y-4">
-                    <div className="p-3 bg-gray-800 rounded-lg border border-gray-700">
-                      <p className="text-[10px] text-gray-400 uppercase font-bold mb-1">
-                        Signed Filename
+
+                <div className="p-6 space-y-6">
+                  {response.qrCode && (
+                    <div className="bg-white p-4 rounded-xl flex flex-col items-center justify-center shadow-inner">
+                      <QRCodeCanvas
+                        value={response.qrCode}
+                        size={180}
+                        level="M"
+                        includeMargin={false}
+                      />
+                      <p className="mt-4 text-[10px] font-bold text-gray-400 uppercase tracking-tighter">
+                        ZATCA Compliant QR Code
                       </p>
-                      <p className="text-xs text-white font-mono">
+                    </div>
+                  )}
+
+                  <div className="space-y-4">
+                    <div className="p-3 bg-gray-800/50 rounded-lg border border-gray-700/50">
+                      <p className="text-[10px] text-gray-500 uppercase font-black mb-1">
+                        Physical File
+                      </p>
+                      <p className="text-xs text-blue-400 font-mono font-medium truncate">
                         {response.fileName}
                       </p>
                     </div>
-                    <pre className="text-[10px] text-blue-300 font-mono leading-tight whitespace-pre-wrap break-all">
-                      {response.signedXml}
-                    </pre>
+
+                    <div className="relative">
+                      <div className="absolute top-0 right-0 p-2">
+                        <span className="text-[10px] font-bold text-gray-600 uppercase">
+                          UBL 2.1
+                        </span>
+                      </div>
+                      <pre className="text-[10px] text-blue-300/80 font-mono leading-tight p-4 bg-black/40 rounded-lg border border-gray-800 max-h-[200px] overflow-auto whitespace-pre-wrap break-all shadow-inner">
+                        {response.signedXml}
+                      </pre>
+                    </div>
                   </div>
                 </div>
               </div>
