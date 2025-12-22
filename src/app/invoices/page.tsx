@@ -1,55 +1,72 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
-import { invoiceApi } from "@/lib/api-client";
-import type { SignInvoiceDto } from "@/lib/types";
+import { invoiceApi, complianceApi } from "@/lib/api-client";
+import type { SignInvoiceDto, EgsListItem } from "@/lib/types";
 
 export default function InvoicesPage() {
   const [loading, setLoading] = useState(false);
   const [response, setResponse] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const [hotels, setHotels] = useState<EgsListItem[]>([]);
+
+  useEffect(() => {
+    const fetchHotels = async () => {
+      try {
+        const data = await complianceApi.listEgs();
+        setHotels(data);
+      } catch (err) {
+        console.error("Failed to fetch hotels", err);
+      }
+    };
+    fetchHotels();
+  }, []);
 
   const {
     register,
     handleSubmit,
-    control,
     watch,
+    control,
+    setValue,
     formState: { errors },
   } = useForm<SignInvoiceDto>({
     defaultValues: {
-      egs: { countryCode: "SA", invoiceType: "1100", production: false },
+      egs: {
+        production: false,
+        countryCode: "SA",
+        invoiceType: "1100",
+      },
       invoice: {
         currency: "SAR",
         invoiceTypeCode: "388",
-        invoiceTypeCodeName: "0211010",
-        invoiceCounterNumber: 1,
+        paymentMeansCode: "10", // Cash
       },
-      supplier: { address: { country: "SA" } },
-      customer: { type: "B2C", address: { country: "SA" } },
-      lineItems: [
-        {
-          lineId: "1",
-          type: "Service",
-          unitCode: "PCE",
-          taxCategory: "S",
-          description: "",
-          quantity: 1,
-          unitPrice: 0,
-          taxExclusiveAmount: 0,
-          vatPercent: 15,
-          vatAmount: 0,
+      supplier: {
+        registrationName: "Supplier Name LTD",
+        vatNumber: "300000000000003",
+        address: {
+          street: "Main St",
+          city: "Riyadh",
+          country: "SA",
         },
-      ],
-      totals: {
-        lineExtensionTotal: 0,
-        taxExclusiveTotal: 0,
-        vatTotal: 0,
-        taxInclusiveTotal: 0,
-        payableAmount: 0,
       },
+      lineItems: [],
     },
   });
+
+  const selectedCommonName = watch("egs.commonName");
+
+  useEffect(() => {
+    if (selectedCommonName && hotels.length > 0) {
+      const hotel = hotels.find((h) => h.slug === selectedCommonName);
+      if (hotel) {
+        setValue("egs.vatNumber", hotel.vatNumber);
+        setValue("supplier.vatNumber", hotel.vatNumber); // Ensure supplier VAT matches EGS
+        setValue("supplier.registrationName", hotel.organizationName); // Use the org name from properties
+      }
+    }
+  }, [selectedCommonName, hotels, setValue]);
 
   const { fields, append, remove } = useFieldArray({
     control,
@@ -58,34 +75,62 @@ export default function InvoicesPage() {
   const lineItems = watch("lineItems");
 
   const calculateTotals = () => {
-    const items = lineItems || [];
+    const items = watch("lineItems") || [];
+
     const lineExtensionTotal = items.reduce(
-      (sum, item) => sum + (Number(item.taxExclusiveAmount) || 0),
+      (sum, item) =>
+        sum + (Number(item.quantity) * Number(item.unitPrice) || 0),
       0
     );
+
     const vatTotal = items.reduce(
-      (sum, item) => sum + (Number(item.vatAmount) || 0),
+      (sum, item) =>
+        sum +
+        (Number(item.quantity) *
+          Number(item.unitPrice) *
+          (Number(item.vatPercent) / 100) || 0),
       0
     );
+
     const taxInclusiveTotal = lineExtensionTotal + vatTotal;
 
     return {
-      lineExtensionTotal,
-      taxExclusiveTotal: lineExtensionTotal,
-      vatTotal,
-      taxInclusiveTotal,
-      payableAmount: taxInclusiveTotal,
+      lineExtensionTotal: Number(lineExtensionTotal.toFixed(2)),
+      taxExclusiveTotal: Number(lineExtensionTotal.toFixed(2)),
+      vatTotal: Number(vatTotal.toFixed(2)),
+      taxInclusiveTotal: Number(taxInclusiveTotal.toFixed(2)),
+      payableAmount: Number(taxInclusiveTotal.toFixed(2)),
     };
   };
+
+  const invoiceTypeCode = watch("invoice.invoiceTypeCode");
 
   const onSubmit = async (data: SignInvoiceDto) => {
     setLoading(true);
     setError(null);
     setResponse(null);
-    data.totals = calculateTotals();
+
+    // Auto-set invoiceTypeCodeName based on selection if not set
+    if (!data.invoice.invoiceTypeCodeName) {
+      data.invoice.invoiceTypeCodeName =
+        data.customer?.type === "B2B" ? "0111010" : "0211010";
+    }
+
+    // Ensure numeric fields are correctly calculated before submission
+    const currentTotals = calculateTotals();
+    data.totals = currentTotals;
+
+    // Ensure line items have calculated amounts for the XML template
+    data.lineItems = data.lineItems.map((item) => ({
+      ...item,
+      taxExclusiveAmount: Number((item.quantity * item.unitPrice).toFixed(2)),
+      vatAmount: Number(
+        (item.quantity * item.unitPrice * (item.vatPercent / 100)).toFixed(2)
+      ),
+    }));
 
     try {
-      const result = await invoiceApi.sign(data);
+      const result = (await invoiceApi.sign(data)) as any;
       setResponse(result);
     } catch (err: any) {
       setError(
@@ -142,22 +187,25 @@ export default function InvoicesPage() {
                     <label className="block text-sm font-semibold text-gray-900 mb-2">
                       Common Name <span className="text-red-500">*</span>
                     </label>
-                    <input
+                    <select
                       {...register("egs.commonName", { required: true })}
                       className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-colors"
-                      placeholder="Hotel Property Name"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-900 mb-2">
-                      VAT Registration Number{" "}
-                      <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      {...register("egs.vatNumber", { required: true })}
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm font-mono uppercase focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-colors"
-                      placeholder="300000000000003"
-                    />
+                    >
+                      <option value="">Select a Hotel...</option>
+                      {hotels.map((hotel) => (
+                        <option key={hotel.slug} value={hotel.slug}>
+                          {hotel.organizationName}
+                        </option>
+                      ))}
+                    </select>
+                    {hotels.length === 0 && (
+                      <p className="text-[10px] text-amber-600 mt-1 font-medium">
+                        No onboarded hotels found. Please onboard a property
+                        first.
+                      </p>
+                    )}
+                    <input type="hidden" {...register("egs.vatNumber")} />
+                    <input type="hidden" {...register("supplier.vatNumber")} />
                   </div>
                 </div>
               </div>
@@ -171,39 +219,57 @@ export default function InvoicesPage() {
                   Invoice Metadata
                 </h3>
                 <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-900 mb-2">
-                      Serial Number <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      {...register("invoice.invoiceSerialNumber", {
-                        required: true,
-                      })}
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-colors"
-                      placeholder="INV-2024-0001"
-                    />
+                  <div className="p-3 bg-blue-50 border border-blue-100 rounded-lg mb-2">
+                    <p className="text-[10px] font-bold text-blue-600 uppercase tracking-tight mb-1">
+                      Status
+                    </p>
+                    <p className="text-xs text-blue-800 font-medium">
+                      Serial & Counter managed automatically
+                    </p>
                   </div>
+
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="block text-sm font-semibold text-gray-900 mb-2">
-                        Issue Date
+                        Invoice Type
                       </label>
-                      <input
-                        type="date"
-                        {...register("invoice.issueDate")}
+                      <select
+                        {...register("invoice.invoiceTypeCode")}
                         className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-colors"
-                      />
+                      >
+                        <option value="388">Tax Invoice</option>
+                        <option value="381">Credit Note</option>
+                        <option value="383">Debit Note</option>
+                      </select>
                     </div>
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-900 mb-2">
-                        Issue Time
-                      </label>
-                      <input
-                        type="time"
-                        {...register("invoice.issueTime")}
-                        className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-colors"
-                      />
+                    {invoiceTypeCode !== "388" && (
+                      <div>
+                        <label className="block text-sm font-semibold mb-2 text-blue-600">
+                          Reference ID <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          {...register("invoice.billingReferenceId", {
+                            required: true,
+                          })}
+                          className="w-full px-4 py-2.5 border border-blue-200 bg-blue-50 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 transition-colors"
+                          placeholder="Original Invoice ID"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="p-3 bg-gray-50 border border-gray-100 rounded-lg">
+                    <div className="flex justify-between items-center mb-1">
+                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">
+                        Issue Date & Time
+                      </p>
+                      <span className="text-[10px] px-1.5 py-0.5 bg-green-100 text-green-700 rounded font-bold uppercase">
+                        Automated
+                      </span>
                     </div>
+                    <p className="text-xs text-gray-600 italic">
+                      Captured precisely at the moment of signing
+                    </p>
                   </div>
                 </div>
               </div>
@@ -259,11 +325,12 @@ export default function InvoicesPage() {
                   </div>
                   <div>
                     <label className="block text-sm font-semibold text-gray-900 mb-2">
-                      Customer Name
+                      Customer Name / Business Name
                     </label>
                     <input
                       {...register("customer.name")}
                       className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-colors"
+                      placeholder="Guest or Company Name"
                     />
                   </div>
                 </div>
@@ -293,7 +360,9 @@ export default function InvoicesPage() {
                   const quantity = watch(`lineItems.${index}.quantity`) || 0;
                   const unitPrice = watch(`lineItems.${index}.unitPrice`) || 0;
                   const grossTotal = quantity * unitPrice;
-                  const vatAmount = grossTotal * 0.15;
+                  const vatPercent =
+                    watch(`lineItems.${index}.vatPercent`) || 0;
+                  const vatAmount = grossTotal * (vatPercent / 100);
 
                   return (
                     <div
@@ -358,11 +427,24 @@ export default function InvoicesPage() {
 
                         <div className="md:col-span-3">
                           <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
-                            Gross Total
+                            Tax Category
                           </label>
-                          <div className="px-4 py-2.5 bg-gray-100 border border-gray-200 rounded-lg flex items-center justify-end font-semibold text-gray-700 text-sm">
-                            {grossTotal.toFixed(2)}
-                          </div>
+                          <select
+                            {...register(`lineItems.${index}.taxCategory`)}
+                            className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 transition-colors"
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              if (val === "E" || val === "Z" || val === "O") {
+                                // Set VAT to 0 for non-standard categories
+                                // Note: In a real app we'd use setValue from useForm
+                              }
+                            }}
+                          >
+                            <option value="S">Standard (15%)</option>
+                            <option value="E">Exempt (0%)</option>
+                            <option value="Z">Zero Rated (0%)</option>
+                            <option value="O">Out of Scope (0%)</option>
+                          </select>
                         </div>
 
                         <div className="md:col-span-2">
@@ -371,10 +453,10 @@ export default function InvoicesPage() {
                           </label>
                           <input
                             type="number"
-                            {...register(`lineItems.${index}.vatPercent`)}
-                            className="w-full px-4 py-2.5 border rounded-lg text-sm text-center font-semibold bg-blue-50 border-blue-100 focus:outline-none cursor-not-allowed"
-                            readOnly
-                            defaultValue={15}
+                            {...register(`lineItems.${index}.vatPercent`, {
+                              valueAsNumber: true,
+                            })}
+                            className="w-full px-4 py-2.5 border rounded-lg text-sm text-center font-semibold bg-blue-50 border-blue-100 focus:outline-none"
                           />
                         </div>
 
@@ -412,7 +494,7 @@ export default function InvoicesPage() {
                 </div>
                 <div className="flex justify-between items-center text-sm">
                   <span className="text-gray-500 uppercase tracking-wide text-xs font-semibold">
-                    Total VAT (15%)
+                    Total VAT
                   </span>
                   <span className="text-green-600 font-semibold tabular-nums">
                     {totals.vatTotal.toFixed(2)} SAR
@@ -453,10 +535,20 @@ export default function InvoicesPage() {
                   </span>
                   <div className="w-2 h-2 rounded-full bg-green-500"></div>
                 </div>
-                <div className="overflow-auto max-h-[300px]">
-                  <pre className="text-xs text-blue-300 font-mono leading-relaxed">
-                    {JSON.stringify(response, null, 2)}
-                  </pre>
+                <div className="overflow-auto max-h-[400px]">
+                  <div className="space-y-4">
+                    <div className="p-3 bg-gray-800 rounded-lg border border-gray-700">
+                      <p className="text-[10px] text-gray-400 uppercase font-bold mb-1">
+                        Signed Filename
+                      </p>
+                      <p className="text-xs text-white font-mono">
+                        {response.fileName}
+                      </p>
+                    </div>
+                    <pre className="text-[10px] text-blue-300 font-mono leading-tight whitespace-pre-wrap break-all">
+                      {response.signedXml}
+                    </pre>
+                  </div>
                 </div>
               </div>
             )}

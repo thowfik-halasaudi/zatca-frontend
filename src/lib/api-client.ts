@@ -4,7 +4,11 @@ import type {
   IssueCsidDto,
   CheckComplianceDto,
   SignInvoiceDto,
-  ApiResponse,
+  OnboardResponse,
+  CsidResponse,
+  SignResponse,
+  ComplianceResponse,
+  EgsListItem,
 } from "./types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
@@ -18,28 +22,26 @@ const apiClient = axios.create({
 
 // Compliance endpoints
 export const complianceApi = {
-  onboard: async (data: OnboardEgsDto): Promise<ApiResponse> => {
-    const response = await apiClient.post("/compliance/onboard", data);
-    return response.data;
-  },
-
-  issueCsid: async (data: IssueCsidDto): Promise<ApiResponse> => {
-    const response = await apiClient.post("/compliance/issue-csid", data);
-    return response.data;
-  },
-
-  checkCompliance: async (data: CheckComplianceDto): Promise<ApiResponse> => {
-    const response = await apiClient.post("/compliance/check", data);
-    return response.data;
-  },
+  onboard: (data: OnboardEgsDto) =>
+    apiClient
+      .post<OnboardResponse>("/compliance/onboard", data)
+      .then((r) => r.data),
+  issueCsid: (data: IssueCsidDto) =>
+    apiClient
+      .post<CsidResponse>("/compliance/issue-csid", data)
+      .then((r) => r.data),
+  checkCompliance: (data: CheckComplianceDto) =>
+    apiClient
+      .post<ComplianceResponse>("/compliance/check", data)
+      .then((r) => r.data),
+  listEgs: () =>
+    apiClient.get<EgsListItem[]>("/compliance/egs").then((r) => r.data),
 };
 
 // Invoice endpoints
 export const invoiceApi = {
-  sign: async (data: SignInvoiceDto): Promise<ApiResponse> => {
-    const response = await apiClient.post("/invoice/sign", data);
-    return response.data;
-  },
+  sign: (data: SignInvoiceDto) =>
+    apiClient.post<SignResponse>("/invoice/sign", data).then((r) => r.data),
 };
 
 export default apiClient;

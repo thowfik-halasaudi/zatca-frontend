@@ -1,14 +1,27 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { complianceApi } from "@/lib/api-client";
-import type { CheckComplianceDto } from "@/lib/types";
+import type { CheckComplianceDto, EgsListItem } from "@/lib/types";
 
 export default function CompliancePage() {
   const [loading, setLoading] = useState(false);
   const [response, setResponse] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const [hotels, setHotels] = useState<EgsListItem[]>([]);
+
+  useEffect(() => {
+    const fetchHotels = async () => {
+      try {
+        const data = await complianceApi.listEgs();
+        setHotels(data);
+      } catch (err) {
+        console.error("Failed to fetch hotels", err);
+      }
+    };
+    fetchHotels();
+  }, []);
 
   const {
     register,
@@ -57,11 +70,23 @@ export default function CompliancePage() {
                     <label className="block text-sm font-semibold text-gray-900 mb-2">
                       Common Name <span className="text-red-500">*</span>
                     </label>
-                    <input
+                    <select
                       {...register("commonName", { required: true })}
                       className="w-full px-4 py-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-colors"
-                      placeholder="Hotel Property Name"
-                    />
+                    >
+                      <option value="">Select a Hotel...</option>
+                      {hotels.map((hotel) => (
+                        <option key={hotel.slug} value={hotel.slug}>
+                          {hotel.organizationName}
+                        </option>
+                      ))}
+                    </select>
+                    {hotels.length === 0 && (
+                      <p className="text-[10px] text-amber-600 mt-1 font-medium">
+                        No onboarded hotels found. Please onboard a property
+                        first.
+                      </p>
+                    )}
                     {errors.commonName && (
                       <span className="text-xs text-red-500 mt-1 block">
                         Required Field
@@ -232,40 +257,113 @@ export default function CompliancePage() {
 
             {response && (
               <div className="space-y-4">
-                <div className="p-6 bg-green-50 border border-green-100 rounded-xl text-center">
-                  <div className="w-12 h-12 bg-green-500 text-white rounded-xl flex items-center justify-center mx-auto mb-4 shadow-md">
-                    <svg
-                      className="w-6 h-6"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2.5}
-                        d="M5 13l4 4L19 7"
-                      />
-                    </svg>
+                <div
+                  className={`p-6 border rounded-xl text-center ${
+                    response.validationResults?.status === "PASS"
+                      ? "bg-green-50 border-green-100"
+                      : "bg-amber-50 border-amber-100"
+                  }`}
+                >
+                  <div
+                    className={`w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-4 shadow-md ${
+                      response.validationResults?.status === "PASS"
+                        ? "bg-green-500"
+                        : "bg-amber-500"
+                    } text-white`}
+                  >
+                    {response.validationResults?.status === "PASS" ? (
+                      <svg
+                        className="w-6 h-6"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2.5}
+                          d="M5 13l4 4L19 7"
+                        />
+                      </svg>
+                    ) : (
+                      <svg
+                        className="w-6 h-6"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2.5}
+                          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                        />
+                      </svg>
+                    )}
                   </div>
-                  <h4 className="text-xs font-semibold text-green-800 uppercase tracking-wide mb-2">
-                    Compliant
+                  <h4 className="text-xs font-semibold uppercase tracking-wide mb-1">
+                    {response.validationResults?.status === "PASS"
+                      ? "Compliant"
+                      : "Warnings Found"}
                   </h4>
-                  <p className="text-xs text-green-700">
-                    Validation sequence passed
+                  <p className="text-[10px] text-gray-500 font-mono">
+                    ID: {response.reportingStatus || "N/A"}
                   </p>
                 </div>
 
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-gray-50 p-3 rounded-lg border border-gray-100">
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tight mb-1">
+                      Clearance
+                    </p>
+                    <p className="text-xs font-semibold text-gray-700">
+                      {response.clearanceStatus || "Passed"}
+                    </p>
+                  </div>
+                  <div className="bg-gray-50 p-3 rounded-lg border border-gray-100">
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tight mb-1">
+                      Reporting
+                    </p>
+                    <p className="text-xs font-semibold text-gray-700">
+                      {response.reportingStatus || "Success"}
+                    </p>
+                  </div>
+                </div>
+
                 <div className="bg-gray-900 rounded-xl overflow-hidden border border-gray-800">
-                  <div className="bg-gray-800 px-4 py-3 border-b border-gray-700">
+                  <div className="bg-gray-800 px-4 py-3 border-b border-gray-700 flex justify-between items-center">
                     <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
-                      Metadata Report
+                      Validation Report
+                    </span>
+                    <span className="text-[10px] px-2 py-0.5 bg-blue-900/40 text-blue-400 rounded-full font-bold">
+                      {response.validationResults?.infoMessages?.length || 0}{" "}
+                      Infos
                     </span>
                   </div>
                   <div className="p-4 overflow-auto max-h-[300px]">
-                    <pre className="text-xs text-blue-300 font-mono leading-relaxed">
-                      {JSON.stringify(response, null, 2)}
-                    </pre>
+                    <div className="space-y-4">
+                      {response.validationResults?.errorMessages?.length >
+                        0 && (
+                        <div className="space-y-2">
+                          <p className="text-[10px] font-bold text-red-400 uppercase">
+                            Errors
+                          </p>
+                          {response.validationResults.errorMessages.map(
+                            (msg: any, i: number) => (
+                              <div
+                                key={i}
+                                className="text-[10px] text-red-300 font-mono bg-red-950/30 p-2 rounded border border-red-900/30"
+                              >
+                                [{msg.code}] {msg.message}
+                              </div>
+                            )
+                          )}
+                        </div>
+                      )}
+                      <pre className="text-[10px] text-blue-300 font-mono leading-relaxed">
+                        {JSON.stringify(response, null, 2)}
+                      </pre>
+                    </div>
                   </div>
                 </div>
               </div>

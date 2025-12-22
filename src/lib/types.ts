@@ -43,12 +43,10 @@ export interface EgsDto {
 }
 
 export interface InvoiceMetaDto {
-  invoiceSerialNumber: string;
   uuid?: string;
   issueDate?: string;
   issueTime?: string;
   currency?: string;
-  invoiceCounterNumber: number;
   previousInvoiceHash?: string;
   paymentMeansCode?: string;
   deliveryDate?: string;
@@ -111,7 +109,49 @@ export interface SignInvoiceDto {
   totals: TotalsDto;
 }
 
-// API Response types
+// Specific Response Types
+export interface OnboardResponse {
+  privateKey: string;
+  csr: string;
+  message: string;
+}
+
+export interface CsidResponse {
+  privateKey?: string;
+  certificate: string;
+  secret: string;
+  requestId: string | number;
+  message: string;
+}
+
+export interface SignResponse {
+  signedXml: string;
+  fileName: string;
+  message: string;
+}
+
+export interface ComplianceResponse {
+  validationResults: {
+    infoMessages: any[];
+    warningMessages: any[];
+    errorMessages: any[];
+    status: string;
+  };
+  reportingStatus: string;
+  clearanceStatus: string;
+  qrSellertName: string;
+  qrVatNumber: string;
+  reportPath?: string;
+  message?: string;
+}
+
+export interface EgsListItem {
+  slug: string;
+  organizationName: string;
+  vatNumber: string;
+}
+
+// Generic API Response wrapper (for errors primarily)
 export interface ApiResponse<T = any> {
   success?: boolean;
   data?: T;
