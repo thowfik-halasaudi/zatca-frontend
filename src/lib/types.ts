@@ -131,6 +131,27 @@ export interface SignResponse {
   message: string;
 }
 
+export interface SubmitZatcaDto {
+  commonName: string;
+  invoiceSerialNumber: string;
+  production?: boolean;
+}
+
+export interface ZatcaSubmissionResponse {
+  submissionType: "CLEARANCE" | "REPORTING";
+  zatcaStatus: "CLEARED" | "REPORTED" | "REJECTED" | "WARNING";
+  validationResults: {
+    infoMessages: any[];
+    warningMessages: any[];
+    errorMessages: any[];
+    status: string;
+  };
+  clearanceStatus?: string;
+  reportingStatus?: string;
+  clearedInvoice?: string;
+  message: string;
+}
+
 export interface ComplianceResponse {
   validationResults: {
     infoMessages: any[];

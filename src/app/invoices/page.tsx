@@ -2,13 +2,31 @@
 
 import { useForm, useFieldArray } from "react-hook-form";
 import { invoiceApi, complianceApi } from "@/lib/api-client";
-import type { SignInvoiceDto, EgsListItem } from "@/lib/types";
+import type {
+  SignInvoiceDto,
+  EgsListItem,
+  ZatcaSubmissionResponse,
+} from "@/lib/types";
 import { QRCodeCanvas } from "qrcode.react";
 import { useState, useEffect } from "react";
 
+/**
+ * InvoicesPage
+ *
+ * This is the primary business interface for the ZATCA microservice.
+ * It serves three main purposes:
+ * 1. Form Collection: Gathers all UBL-required data (Supplier, Customer, Items).
+ * 2. Digital Signing: Synchronously generates the XML hash and embeds the QR Code.
+ * 3. ZATCA Submission: Sends the signed XML to the final Clearance/Reporting APIs.
+ *
+ * Flow: User fills form -> Clicks "Sign" -> Views QR/XML -> Clicks "Submit to ZATCA" -> Receives Status.
+ */
 export default function InvoicesPage() {
   const [loading, setLoading] = useState(false);
+  const [submitLoading, setSubmitLoading] = useState(false);
   const [response, setResponse] = useState<any>(null);
+  const [submitResponse, setSubmitResponse] =
+    useState<ZatcaSubmissionResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [hotels, setHotels] = useState<EgsListItem[]>([]);
 
@@ -110,6 +128,7 @@ export default function InvoicesPage() {
     setLoading(true);
     setError(null);
     setResponse(null);
+    setSubmitResponse(null);
 
     // Auto-set invoiceTypeCodeName based on selection if not set
     if (!data.invoice.invoiceTypeCodeName) {
@@ -139,6 +158,35 @@ export default function InvoicesPage() {
       );
     } finally {
       setLoading(false);
+    }
+  };
+
+  /**
+   * handleZatcaSubmission
+   *
+   * Triggers the final hand-off to ZATCA.
+   * This sends the signed XML (stored locally by serial number) to the microservice
+   * which then decides to use either Clearance (Standard) or Reporting (Simplified) API.
+   */
+  const handleZatcaSubmission = async () => {
+    if (!response || !selectedCommonName) return;
+
+    setSubmitLoading(true);
+    setError(null);
+
+    try {
+      const result = await complianceApi.submit({
+        commonName: selectedCommonName,
+        invoiceSerialNumber: response.fileName.replace("_signed.xml", ""),
+        production: false,
+      });
+      setSubmitResponse(result);
+    } catch (err: any) {
+      setError(
+        err.response?.data?.message || err.message || "Submission failed"
+      );
+    } finally {
+      setSubmitLoading(false);
     }
   };
 
@@ -565,6 +613,67 @@ export default function InvoicesPage() {
                   )}
 
                   <div className="space-y-4">
+                    <button
+                      type="button"
+                      onClick={handleZatcaSubmission}
+                      disabled={
+                        submitLoading ||
+                        submitResponse?.zatcaStatus === "CLEARED" ||
+                        submitResponse?.zatcaStatus === "REPORTED"
+                      }
+                      className="w-full py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-bold transition-all shadow-md active:scale-[0.98] disabled:opacity-50 disabled:grayscale"
+                    >
+                      {submitLoading
+                        ? "Submitting..."
+                        : submitResponse
+                        ? "Resubmit to ZATCA"
+                        : "Submit to ZATCA"}
+                    </button>
+
+                    {submitResponse && (
+                      <div
+                        className={`p-4 rounded-lg border ${
+                          submitResponse.zatcaStatus === "REJECTED"
+                            ? "bg-red-900/20 border-red-800 text-red-200"
+                            : "bg-green-900/20 border-green-800 text-green-200"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-[10px] font-black uppercase tracking-widest">
+                            {submitResponse.submissionType} Status:
+                          </span>
+                          <span
+                            className={`text-xs font-bold px-1.5 py-0.5 rounded ${
+                              submitResponse.zatcaStatus === "REJECTED"
+                                ? "bg-red-500 text-white"
+                                : "bg-green-500 text-white"
+                            }`}
+                          >
+                            {submitResponse.zatcaStatus}
+                          </span>
+                        </div>
+                        <p className="text-xs opacity-80 leading-relaxed">
+                          {submitResponse.message}
+                        </p>
+
+                        {submitResponse.validationResults?.warningMessages
+                          ?.length > 0 && (
+                          <div className="mt-3 pt-3 border-t border-white/10">
+                            <p className="text-[10px] font-bold text-amber-400 uppercase mb-1">
+                              Warnings:
+                            </p>
+                            <ul className="text-[10px] list-disc list-inside space-y-1 opacity-70">
+                              {submitResponse.validationResults.warningMessages.map(
+                                (msg, i) => (
+                                  <li key={i}>{msg.message}</li>
+                                )
+                              )}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
                     <div className="p-3 bg-gray-800/50 rounded-lg border border-gray-700/50">
                       <p className="text-[10px] text-gray-500 uppercase font-black mb-1">
                         Physical File
