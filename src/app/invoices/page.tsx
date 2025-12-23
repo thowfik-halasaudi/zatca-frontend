@@ -834,8 +834,9 @@ export default function InvoicesPage() {
                   <div className="bg-white p-4 border border-gray-100 rounded-lg flex justify-center">
                     <QRCodeCanvas
                       value={response.qrCode}
-                      size={150}
+                      size={256}
                       level="M"
+                      includeMargin={true}
                     />
                   </div>
 
