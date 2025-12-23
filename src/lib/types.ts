@@ -28,6 +28,8 @@ export interface IssueCsidDto {
 export interface CheckComplianceDto {
   commonName: string;
   invoiceSerialNumber: string;
+  production?: boolean;
+  environment?: string;
 }
 
 // Invoice DTOs
@@ -135,6 +137,7 @@ export interface SubmitZatcaDto {
   commonName: string;
   invoiceSerialNumber: string;
   production?: boolean;
+  environment?: string;
 }
 
 export interface ZatcaSubmissionResponse {
@@ -174,6 +177,20 @@ export interface EgsListItem {
   status: string;
   country: string;
   production: boolean;
+}
+
+export interface Invoice {
+  id: string;
+  invoiceNumber: string;
+  invoiceCategory: string;
+  invoiceTypeCodeName: string;
+  totalAmount: number;
+  status: string;
+  buyerName?: string;
+  issueDateTime: string;
+  createdAt: string;
+  updatedAt: string;
+  submission?: ZatcaSubmissionResponse;
 }
 
 // Generic API Response wrapper (for errors primarily)

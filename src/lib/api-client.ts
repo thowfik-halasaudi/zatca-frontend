@@ -56,6 +56,12 @@ export const complianceApi = {
     apiClient
       .post<ZatcaSubmissionResponse>("/compliance/submit", data)
       .then((r) => r.data),
+
+  /** Step 6: Exchange Compliance CSID for Production CSID */
+  upgradeCsid: (commonName: string) =>
+    apiClient
+      .post<any>("/compliance/upgrade-csid", { commonName })
+      .then((r) => r.data),
 };
 
 /**
