@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { complianceApi } from "@/lib/api-client";
+import { complianceApi, invoiceApi } from "@/lib/api-client";
 import type { CheckComplianceDto, EgsListItem } from "@/lib/types";
 
 export default function CompliancePage() {
@@ -26,8 +26,26 @@ export default function CompliancePage() {
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm<CheckComplianceDto>();
+
+  const [invoices, setInvoices] = useState<any[]>([]);
+  const selectedCommonName = watch("commonName");
+
+  useEffect(() => {
+    if (selectedCommonName) {
+      invoiceApi
+        .listInvoices(selectedCommonName)
+        .then((data) => setInvoices(data))
+        .catch((err) => {
+          console.error("Failed to fetch invoices", err);
+          setInvoices([]);
+        });
+    } else {
+      setInvoices([]);
+    }
+  }, [selectedCommonName]);
 
   const onSubmit = async (data: CheckComplianceDto) => {
     setLoading(true);
@@ -99,11 +117,26 @@ export default function CompliancePage() {
                       Invoice Serial Number{" "}
                       <span className="text-red-500">*</span>
                     </label>
-                    <input
+                    <select
                       {...register("invoiceSerialNumber", { required: true })}
                       className="w-full px-4 py-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-colors"
-                      placeholder="INV-2024-XXXX"
-                    />
+                    >
+                      <option value="">Select Invoice...</option>
+                      {invoices.length > 0 ? (
+                        invoices.map((inv) => (
+                          <option
+                            key={inv.invoiceNumber}
+                            value={inv.invoiceNumber}
+                          >
+                            {inv.invoiceNumber} (
+                            {new Date(inv.issueDateTime).toLocaleDateString()} -{" "}
+                            {inv.totalAmount} SAR)
+                          </option>
+                        ))
+                      ) : (
+                        <option disabled>No invoices found</option>
+                      )}
+                    </select>
                     {errors.invoiceSerialNumber && (
                       <span className="text-xs text-red-500 mt-1 block">
                         Required Field

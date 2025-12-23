@@ -8,7 +8,7 @@ export default function Nav() {
 
   const navItems = [
     { href: "/onboarding", label: "Onboarding" },
-    { href: "/invoices", label: "Invoices" },
+    { href: "/invoices-list", label: "Invoices" },
     { href: "/compliance", label: "Compliance" },
   ];
 

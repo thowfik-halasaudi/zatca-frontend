@@ -10,6 +10,210 @@ import type {
 import { QRCodeCanvas } from "qrcode.react";
 import { useState, useEffect } from "react";
 
+// Invoice Line Item Presets
+const INVOICE_PRESETS: Record<string, any[]> = {
+  "Deluxe Room": [
+    {
+      lineId: "1",
+      type: "Service",
+      description: "Deluxe Room – One Night Stay",
+      quantity: 1,
+      unitCode: "PCE",
+      unitPrice: 800.0,
+      taxExclusiveAmount: 800.0,
+      vatPercent: 15,
+      vatAmount: 120.0,
+      taxCategory: "S",
+    },
+    {
+      lineId: "2",
+      type: "Service",
+      description: "Breakfast Buffet",
+      quantity: 2,
+      unitCode: "PCE",
+      unitPrice: 75.0,
+      taxExclusiveAmount: 150.0,
+      vatPercent: 15,
+      vatAmount: 22.5,
+      taxCategory: "S",
+    },
+    {
+      lineId: "3",
+      type: "Service",
+      description: "Airport Pickup Service",
+      quantity: 1,
+      unitCode: "PCE",
+      unitPrice: 120.0,
+      taxExclusiveAmount: 120.0,
+      vatPercent: 15,
+      vatAmount: 18.0,
+      taxCategory: "S",
+    },
+    {
+      lineId: "4",
+      type: "Service",
+      description: "Laundry Service",
+      quantity: 1,
+      unitCode: "PCE",
+      unitPrice: 60.0,
+      taxExclusiveAmount: 60.0,
+      vatPercent: 15,
+      vatAmount: 9.0,
+      taxCategory: "S",
+    },
+  ],
+  "Executive Room": [
+    {
+      lineId: "1",
+      type: "Service",
+      description: "Executive Room – One Night Stay",
+      quantity: 1,
+      unitCode: "PCE",
+      unitPrice: 1000.0,
+      taxExclusiveAmount: 1000.0,
+      vatPercent: 15,
+      vatAmount: 150.0,
+      taxCategory: "S",
+    },
+    {
+      lineId: "2",
+      type: "Service",
+      description: "Executive Lounge Access",
+      quantity: 1,
+      unitCode: "PCE",
+      unitPrice: 200.0,
+      taxExclusiveAmount: 200.0,
+      vatPercent: 15,
+      vatAmount: 30.0,
+      taxCategory: "S",
+    },
+    {
+      lineId: "3",
+      type: "Service",
+      description: "Breakfast Buffet",
+      quantity: 2,
+      unitCode: "PCE",
+      unitPrice: 90.0,
+      taxExclusiveAmount: 180.0,
+      vatPercent: 15,
+      vatAmount: 27.0,
+      taxCategory: "S",
+    },
+    {
+      lineId: "4",
+      type: "Service",
+      description: "Laundry Service",
+      quantity: 1,
+      unitCode: "PCE",
+      unitPrice: 80.0,
+      taxExclusiveAmount: 80.0,
+      vatPercent: 15,
+      vatAmount: 12.0,
+      taxCategory: "S",
+    },
+  ],
+  "Suite Room": [
+    {
+      lineId: "1",
+      type: "Service",
+      description: "Suite Room – One Night Stay",
+      quantity: 1,
+      unitCode: "PCE",
+      unitPrice: 1500.0,
+      taxExclusiveAmount: 1500.0,
+      vatPercent: 15,
+      vatAmount: 225.0,
+      taxCategory: "S",
+    },
+    {
+      lineId: "2",
+      type: "Service",
+      description: "In-Room Dining",
+      quantity: 1,
+      unitCode: "PCE",
+      unitPrice: 250.0,
+      taxExclusiveAmount: 250.0,
+      vatPercent: 15,
+      vatAmount: 37.5,
+      taxCategory: "S",
+    },
+    {
+      lineId: "3",
+      type: "Service",
+      description: "Spa Access",
+      quantity: 1,
+      unitCode: "PCE",
+      unitPrice: 300.0,
+      taxExclusiveAmount: 300.0,
+      vatPercent: 15,
+      vatAmount: 45.0,
+      taxCategory: "S",
+    },
+    {
+      lineId: "4",
+      type: "Service",
+      description: "Airport Pickup Service",
+      quantity: 1,
+      unitCode: "PCE",
+      unitPrice: 150.0,
+      taxExclusiveAmount: 150.0,
+      vatPercent: 15,
+      vatAmount: 22.5,
+      taxCategory: "S",
+    },
+  ],
+  "Family Room": [
+    {
+      lineId: "1",
+      type: "Service",
+      description: "Family Room – One Night Stay",
+      quantity: 1,
+      unitCode: "PCE",
+      unitPrice: 1200.0,
+      taxExclusiveAmount: 1200.0,
+      vatPercent: 15,
+      vatAmount: 180.0,
+      taxCategory: "S",
+    },
+    {
+      lineId: "2",
+      type: "Service",
+      description: "Extra Bed",
+      quantity: 1,
+      unitCode: "PCE",
+      unitPrice: 150.0,
+      taxExclusiveAmount: 150.0,
+      vatPercent: 15,
+      vatAmount: 22.5,
+      taxCategory: "S",
+    },
+    {
+      lineId: "3",
+      type: "Service",
+      description: "Breakfast Buffet",
+      quantity: 4,
+      unitCode: "PCE",
+      unitPrice: 70.0,
+      taxExclusiveAmount: 280.0,
+      vatPercent: 15,
+      vatAmount: 42.0,
+      taxCategory: "S",
+    },
+    {
+      lineId: "4",
+      type: "Service",
+      description: "Kids Play Area Access",
+      quantity: 1,
+      unitCode: "PCE",
+      unitPrice: 50.0,
+      taxExclusiveAmount: 50.0,
+      vatPercent: 15,
+      vatAmount: 7.5,
+      taxCategory: "S",
+    },
+  ],
+};
+
 /**
  * InvoicesPage
  *
@@ -70,7 +274,56 @@ export default function InvoicesPage() {
           country: "SA",
         },
       },
-      lineItems: [],
+      lineItems: [
+        {
+          lineId: "1",
+          type: "Service",
+          description: "Deluxe Room – One Night Stay",
+          quantity: 1,
+          unitCode: "PCE",
+          unitPrice: 800.0,
+          taxExclusiveAmount: 800.0,
+          vatPercent: 15,
+          vatAmount: 120.0,
+          taxCategory: "S",
+        },
+        {
+          lineId: "2",
+          type: "Service",
+          description: "Breakfast Buffet",
+          quantity: 2,
+          unitCode: "PCE",
+          unitPrice: 75.0,
+          taxExclusiveAmount: 150.0,
+          vatPercent: 15,
+          vatAmount: 22.5,
+          taxCategory: "S",
+        },
+        {
+          lineId: "3",
+          type: "Service",
+          description: "Airport Pickup Service",
+          quantity: 1,
+          unitCode: "PCE",
+          unitPrice: 120.0,
+          taxExclusiveAmount: 120.0,
+          vatPercent: 15,
+          vatAmount: 18.0,
+          taxCategory: "S",
+        },
+        {
+          lineId: "4",
+          type: "Service",
+          description: "Laundry Service",
+          quantity: 1,
+          unitCode: "PCE",
+          unitPrice: 60.0,
+          taxExclusiveAmount: 60.0,
+          vatPercent: 15,
+          vatAmount: 9.0,
+          taxCategory: "S",
+        },
+      ],
     },
   });
 
@@ -87,7 +340,7 @@ export default function InvoicesPage() {
     }
   }, [selectedCommonName, hotels, setValue]);
 
-  const { fields, append, remove } = useFieldArray({
+  const { fields, append, remove, replace } = useFieldArray({
     control,
     name: "lineItems",
   });
@@ -395,13 +648,31 @@ export default function InvoicesPage() {
                   </span>
                   Items & Services
                 </h3>
-                <button
-                  type="button"
-                  onClick={addLineItem}
-                  className="px-4 py-2 text-xs font-semibold text-gray-700 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2"
-                >
-                  + Add New Line
-                </button>
+                <div className="flex gap-2 items-center">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase mr-2">
+                    Presets:
+                  </span>
+                  {Object.keys(INVOICE_PRESETS).map((p) => (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => {
+                        replace(INVOICE_PRESETS[p]);
+                      }}
+                      className="px-3 py-1 bg-blue-600 text-[10px] font-bold text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+                    >
+                      {p}
+                    </button>
+                  ))}
+                  <div className="w-px h-4 bg-gray-200 mx-2" />
+                  <button
+                    type="button"
+                    onClick={addLineItem}
+                    className="px-4 py-2 text-xs font-semibold text-gray-700 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2"
+                  >
+                    + Add New Line
+                  </button>
+                </div>
               </div>
 
               <div className="space-y-4">
@@ -527,7 +798,7 @@ export default function InvoicesPage() {
 
           {/* Sidebar Area */}
           <div className="lg:col-span-4 space-y-6">
-            <div className="sticky top-24 bg-white border border-gray-200 rounded-xl p-6 lg:p-8 shadow-lg">
+            <div className=" bg-white border border-gray-200 rounded-xl p-6 lg:p-8 shadow-lg">
               <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-100 pb-4 mb-6">
                 Summary & Totals
               </h3>

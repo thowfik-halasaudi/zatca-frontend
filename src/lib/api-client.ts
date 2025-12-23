@@ -67,6 +67,22 @@ export const invoiceApi = {
   /** Signs an invoice XML using the private key and CSR data */
   sign: (data: SignInvoiceDto) =>
     apiClient.post<SignResponse>("/invoice/sign", data).then((r) => r.data),
+
+  /** Lists invoices for a given EGS Common Name */
+  listInvoices: (commonName: string) =>
+    apiClient
+      .get<any[]>(`/invoice`, { params: { commonName } })
+      .then((r) => r.data),
+
+  /** Gets full detail of a single invoice by its number */
+  getInvoice: (invoiceNumber: string) =>
+    apiClient.get<any>(`/invoice/${invoiceNumber}`).then((r) => r.data),
+
+  /** Gets raw ZATCA response for a single invoice */
+  getZatcaResponse: (invoiceNumber: string) =>
+    apiClient
+      .get<any>(`/invoice/${invoiceNumber}/zatca-response`)
+      .then((r) => r.data),
 };
 
 export default apiClient;
