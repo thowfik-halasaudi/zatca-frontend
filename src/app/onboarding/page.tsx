@@ -1,21 +1,130 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { complianceApi } from "@/lib/api-client";
-import type { OnboardEgsDto, IssueCsidDto } from "@/lib/types";
+import type { OnboardEgsDto, IssueCsidDto, EgsListItem } from "@/lib/types";
+
+const ONBOARD_PRESETS = [
+  {
+    name: "Hilton Group (Sample)",
+    data: {
+      commonName: "HILTONGROUP",
+      serialNumber: "1-Hilton|2-HMS|3-4b7a1c92-6f3d-4c2e-9a8f-1e9b2c7d5f44",
+      organizationIdentifier: "303456789100003",
+      organizationUnitName: "Hilton Riyadh Hotel and Residences",
+      organizationName: "Hilton Worldwide Saudi Arabia",
+      countryName: "SA",
+      invoiceType: "1100",
+      locationAddress: "15 King Fahd Road, Riyadh, KSA",
+      industryBusinessCategory: "Hotels and Accommodation",
+      production: false,
+    },
+  },
+  {
+    name: "Marriott KSA (Sample)",
+    data: {
+      commonName: "MARRIOTTKSA",
+      serialNumber: "1-Marriott|2-MGS|3-91f7caa3-8c62-4c1c-9f42-41c0a5b4c9f1",
+      organizationIdentifier: "300987654300003",
+      organizationUnitName: "Marriott Riyadh Diplomatic Quarter",
+      organizationName: "Marriott International Saudi Arabia",
+      countryName: "SA",
+      invoiceType: "1100",
+      locationAddress: "Diplomatic Quarter, Riyadh, KSA",
+      industryBusinessCategory: "Hotels and Accommodation",
+      production: false,
+    },
+  },
+  {
+    name: "Accor SA (Sample)",
+    data: {
+      commonName: "ACCORSA",
+      serialNumber: "1-Accor|2-ACS|3-0b52f1cb-29aa-4a1f-a7e3-1f7b92e4d0aa",
+      organizationIdentifier: "301234567800003",
+      organizationUnitName: "Novotel Al Anoud Riyadh",
+      organizationName: "Accor Hotels Saudi Arabia",
+      countryName: "SA",
+      invoiceType: "1100",
+      locationAddress: "Olaya Street, Riyadh, KSA",
+      industryBusinessCategory: "Hotels and Accommodation",
+      production: false,
+    },
+  },
+  {
+    name: "Radisson SA (Sample)",
+    data: {
+      commonName: "RADISSONSA",
+      serialNumber: "1-Radisson|2-RGS|3-6c9dcb55-9f71-4c33-8b5a-0f7b63b2d8c1",
+      organizationIdentifier: "302345678900003",
+      organizationUnitName: "Radisson Blu Riyadh Convention Center",
+      organizationName: "Radisson Hotel Group Saudi Arabia",
+      countryName: "SA",
+      invoiceType: "1100",
+      locationAddress: "King Abdullah Road, Riyadh, KSA",
+      industryBusinessCategory: "Hotels and Accommodation",
+      production: false,
+    },
+  },
+  {
+    name: "IHG SA (Sample)",
+    data: {
+      commonName: "IHGSA",
+      serialNumber: "1-IHG|2-IGS|3-b52a7c9e-48f2-42c7-b41c-01e9b03c1f22",
+      organizationIdentifier: "304567890100003",
+      organizationUnitName: "InterContinental Riyadh",
+      organizationName: "InterContinental Hotels Group Saudi Arabia",
+      countryName: "SA",
+      invoiceType: "1100",
+      locationAddress: "Al Maather Street, Riyadh, KSA",
+      industryBusinessCategory: "Hotels and Accommodation",
+      production: false,
+    },
+  },
+  {
+    name: "Hyatt SA (Sample)",
+    data: {
+      commonName: "HYATTSA",
+      serialNumber: "1-Hyatt|2-HYS|3-93a41a4c-2f8c-4b2f-9c22-2c34d9a6a721",
+      organizationIdentifier: "305678901200003",
+      organizationUnitName: "Hyatt Regency Olaya Riyadh",
+      organizationName: "Hyatt Hotels Saudi Arabia",
+      countryName: "SA",
+      invoiceType: "1100",
+      locationAddress: "Olaya Street, Riyadh, KSA",
+      industryBusinessCategory: "Hotels and Accommodation",
+      production: false,
+    },
+  },
+];
 
 export default function OnboardingPage() {
-  const [activeTab, setActiveTab] = useState<"onboard" | "issue">("onboard");
+  const [activeTab, setActiveTab] = useState<"onboard" | "issue" | "list">(
+    "onboard"
+  );
   const [loading, setLoading] = useState(false);
   const [response, setResponse] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const [hotels, setHotels] = useState<EgsListItem[]>([]);
+
+  useEffect(() => {
+    const fetchHotels = async () => {
+      try {
+        const data = (await complianceApi.listEgs()) as any[];
+        setHotels(data);
+      } catch (err) {
+        console.error("Failed to fetch hotels", err);
+      }
+    };
+    fetchHotels();
+  }, []);
 
   const {
     register: registerOnboard,
     handleSubmit: handleSubmitOnboard,
     formState: { errors: errorsOnboard },
     reset: resetOnboard,
+    setValue,
   } = useForm<OnboardEgsDto>({
     defaultValues: {
       production: false,
@@ -24,6 +133,12 @@ export default function OnboardingPage() {
       industryBusinessCategory: "Hotels and Accommodation",
     },
   });
+
+  const handleApplyPreset = (presetData: any) => {
+    Object.entries(presetData).forEach(([key, value]) => {
+      setValue(key as keyof OnboardEgsDto, value as any);
+    });
+  };
 
   const {
     register: registerIssue,
@@ -162,6 +277,43 @@ export default function OnboardingPage() {
                 className="space-y-8"
               >
                 <div className="space-y-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      Quick Presets
+                    </h3>
+                    <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-bold uppercase">
+                      Developer Hint
+                    </span>
+                  </div>
+                  <div className="relative group">
+                    <div className="absolute -inset-0.5 bg-linear-to-r from-blue-600 to-cyan-500 rounded-lg blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
+                    <select
+                      onChange={(e) => {
+                        const preset = ONBOARD_PRESETS.find(
+                          (p) => p.name === e.target.value
+                        );
+                        if (preset) handleApplyPreset(preset.data);
+                      }}
+                      className="relative w-full px-4 py-3 bg-white border border-gray-200 rounded-lg text-sm font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all cursor-pointer hover:border-blue-300"
+                      defaultValue=""
+                    >
+                      <option value="" disabled>
+                        Choose a Hotel Profile to auto-fill...
+                      </option>
+                      {ONBOARD_PRESETS.map((preset) => (
+                        <option key={preset.name} value={preset.name}>
+                          🏢 {preset.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <p className="text-[11px] text-gray-500 italic mt-2">
+                    Tip: Selecting a profile automatically populates the VAT
+                    Number, Serial Number, and Organization details for testing.
+                  </p>
+                </div>
+
+                <div className="space-y-6 pt-6 border-t border-gray-100">
                   <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
                     Mandatory Credentials
                   </h3>
@@ -379,11 +531,23 @@ export default function OnboardingPage() {
                       Common Name (Hotel Name){" "}
                       <span className="text-red-500">*</span>
                     </label>
-                    <input
+                    <select
                       {...registerIssue("commonName", { required: true })}
                       className="w-full px-4 py-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-colors"
-                      placeholder="Grand Hotel Riyadh"
-                    />
+                    >
+                      <option value="">Select a Hotel...</option>
+                      {hotels.map((hotel) => (
+                        <option key={hotel.slug} value={hotel.slug}>
+                          {hotel.organizationName} ({hotel.slug})
+                        </option>
+                      ))}
+                    </select>
+                    {hotels.length === 0 && (
+                      <p className="text-[10px] text-amber-600 mt-1 font-medium">
+                        No onboarded properties found. Please complete Step 1
+                        first.
+                      </p>
+                    )}
                     {errorsIssue.commonName && (
                       <span className="text-xs text-red-500 mt-1 block">
                         Required

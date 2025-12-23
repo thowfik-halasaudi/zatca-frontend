@@ -171,6 +171,9 @@ export interface EgsListItem {
   slug: string;
   organizationName: string;
   vatNumber: string;
+  status: string;
+  country: string;
+  production: boolean;
 }
 
 // Generic API Response wrapper (for errors primarily)
