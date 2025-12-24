@@ -11,6 +11,7 @@ import type {
   EgsListItem,
   SubmitZatcaDto,
   ZatcaSubmissionResponse,
+  IssueProductionCsidDto,
 } from "./types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
@@ -48,8 +49,10 @@ export const complianceApi = {
       .then((r) => r.data),
 
   /** Retrieves all profiles registered on this microservice */
-  listEgs: () =>
-    apiClient.get<EgsListItem[]>("/compliance/egs").then((r) => r.data),
+  listEgs: (commonName?: string) =>
+    apiClient
+      .get<EgsListItem[]>("/compliance/egs", { params: { commonName } })
+      .then((r) => r.data),
 
   /** Step 5: Final Submission to ZATCA Simulation/Production */
   submit: (data: SubmitZatcaDto) =>
@@ -58,9 +61,10 @@ export const complianceApi = {
       .then((r) => r.data),
 
   /** Step 6: Exchange Compliance CSID for Production CSID */
-  upgradeCsid: (commonName: string) =>
+  /** Step 6: Exchange Compliance CSID for Production CSID */
+  issueProductionCsid: (data: IssueProductionCsidDto) =>
     apiClient
-      .post<any>("/compliance/upgrade-csid", { commonName })
+      .post<CsidResponse>("/compliance/production", data)
       .then((r) => r.data),
 };
 

@@ -19,6 +19,7 @@ const ONBOARD_PRESETS = [
       locationAddress: "15 King Fahd Road, Riyadh, KSA",
       industryBusinessCategory: "Hotels and Accommodation",
       production: false,
+      propertyId: "HLT-001",
     },
   },
   {
@@ -34,6 +35,7 @@ const ONBOARD_PRESETS = [
       locationAddress: "Diplomatic Quarter, Riyadh, KSA",
       industryBusinessCategory: "Hotels and Accommodation",
       production: false,
+      propertyId: "MAR-001",
     },
   },
   {
@@ -49,6 +51,7 @@ const ONBOARD_PRESETS = [
       locationAddress: "Olaya Street, Riyadh, KSA",
       industryBusinessCategory: "Hotels and Accommodation",
       production: false,
+      propertyId: "ACC-001",
     },
   },
   {
@@ -64,6 +67,7 @@ const ONBOARD_PRESETS = [
       locationAddress: "King Abdullah Road, Riyadh, KSA",
       industryBusinessCategory: "Hotels and Accommodation",
       production: false,
+      propertyId: "RAD-001",
     },
   },
   {
@@ -79,6 +83,7 @@ const ONBOARD_PRESETS = [
       locationAddress: "Al Maather Street, Riyadh, KSA",
       industryBusinessCategory: "Hotels and Accommodation",
       production: false,
+      propertyId: "IHG-001",
     },
   },
   {
@@ -94,14 +99,15 @@ const ONBOARD_PRESETS = [
       locationAddress: "Olaya Street, Riyadh, KSA",
       industryBusinessCategory: "Hotels and Accommodation",
       production: false,
+      propertyId: "HYT-001",
     },
   },
 ];
 
 export default function OnboardingPage() {
-  const [activeTab, setActiveTab] = useState<"onboard" | "issue" | "list">(
-    "onboard"
-  );
+  const [activeTab, setActiveTab] = useState<
+    "onboard" | "issue" | "production"
+  >("onboard");
   const [loading, setLoading] = useState(false);
   const [response, setResponse] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
@@ -185,6 +191,34 @@ export default function OnboardingPage() {
     }
   };
 
+  const {
+    register: registerProduction,
+    handleSubmit: handleSubmitProduction,
+    reset: resetProduction,
+  } = useForm<{ commonName: string; production: boolean }>({
+    defaultValues: { production: false },
+  });
+
+  const onSubmitProduction = async (data: {
+    commonName: string;
+    production: boolean;
+  }) => {
+    setLoading(true);
+    setError(null);
+    setResponse(null);
+    try {
+      const result = await complianceApi.issueProductionCsid(data);
+      setResponse(result);
+      resetProduction();
+    } catch (err: any) {
+      setError(
+        err.response?.data?.message || err.message || "An error occurred"
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-8 lg:space-y-10">
       {/* Page Header */}
@@ -217,53 +251,84 @@ export default function OnboardingPage() {
           </div>
           <div className="flex-1">
             <h3 className="font-semibold text-gray-900 mb-2">
-              Understanding the Onboarding Process
+              ZATCA Process Overview
             </h3>
-            <div className="text-sm text-gray-700 space-y-2">
+            <div className="text-sm text-gray-700 space-y-3">
               <p>
-                <strong>Full Onboarding:</strong> This process generates a
-                Certificate Signing Request (CSR) containing your organization's
-                cryptographic identity. The CSR is then submitted to ZATCA's
-                Fatoora Portal along with an OTP to obtain your Compliance
-                Certificate (CSID).
+                <strong>Step 1 - CSR Generation:</strong> The platform creates a
+                Certificate Signing Request with your organization details. This
+                CSR uniquely identifies your EGS (E-Invoice Generation
+                Solution).
               </p>
               <p>
-                <strong>Issue CSID Only:</strong> If you already have a CSR and
-                OTP from ZATCA's portal, use this flow to complete the
-                certificate issuance. This is typically used when you've
-                generated the CSR manually or need to re-issue a certificate.
+                <strong>Step 2 - ZATCA Portal:</strong> Submit the CSR to
+                ZATCA's Fatoora Portal along with an OTP. ZATCA validates your
+                VAT registration and organization details.
               </p>
-              <p className="text-xs text-gray-600 mt-3">
-                <strong>Note:</strong> The CSID certificate is required to
-                digitally sign invoices. Store your private key securely - it's
-                used for all invoice signatures.
+              <p>
+                <strong>Step 3 - CSID Issuance:</strong> Upon validation, ZATCA
+                issues a Compliance Certificate (CSID) - a digital certificate
+                that authorizes you to sign invoices.
+              </p>
+              <div className="pt-2 border-t border-blue-200 mt-2">
+                <p className="font-semibold text-blue-800 mb-1">
+                  Lifecycle Management:
+                </p>
+                <ul className="list-disc pl-5 text-blue-800/80 space-y-1">
+                  <li>
+                    <strong>Renew CSID:</strong> To renew or re-onboard, go to{" "}
+                    <span className="font-medium">
+                      Compliance &gt; Manage Certificates
+                    </span>{" "}
+                    and click "Renew".
+                  </li>
+                  <li>
+                    <strong>Revoke CSID:</strong> To revoke a certificate (e.g.,
+                    if compromised), use the "Revoke" action in the same tab.
+                  </li>
+                </ul>
+              </div>
+              <p className="text-xs bg-blue-100 p-2 rounded text-blue-800 mt-2">
+                ⚠️ <strong>Important:</strong> Onboarding is a one-time process
+                per cryptographic unit. Ensure all details match your ZATCA
+                portal registration exactly. Store your private key securely -
+                it's required for all invoice signatures.
               </p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex border-b border-gray-200">
+      <div className="flex border-b border-gray-200 overflow-x-auto">
         <button
           onClick={() => setActiveTab("onboard")}
-          className={`px-6 py-4 font-semibold text-sm transition-colors border-b-2 ${
+          className={`px-6 py-4 font-semibold text-sm transition-colors border-b-2 whitespace-nowrap ${
             activeTab === "onboard"
               ? "text-blue-600 border-blue-600 bg-blue-50/50"
               : "text-gray-500 border-transparent hover:text-gray-700 hover:bg-gray-50"
           }`}
         >
-          Full Onboarding
+          1. Full Onboarding
         </button>
         <button
           onClick={() => setActiveTab("issue")}
-          className={`px-6 py-4 font-semibold text-sm transition-colors border-b-2 ${
+          className={`px-6 py-4 font-semibold text-sm transition-colors border-b-2 whitespace-nowrap ${
             activeTab === "issue"
               ? "text-blue-600 border-blue-600 bg-blue-50/50"
               : "text-gray-500 border-transparent hover:text-gray-700 hover:bg-gray-50"
           }`}
         >
-          Issue CSID Only
+          2. Issue CSID (Step 2)
+        </button>
+        <button
+          onClick={() => setActiveTab("production")}
+          className={`px-6 py-4 font-semibold text-sm transition-colors border-b-2 whitespace-nowrap ${
+            activeTab === "production"
+              ? "text-green-600 border-green-600 bg-green-50/50"
+              : "text-gray-500 border-transparent hover:text-gray-700 hover:bg-gray-50"
+          }`}
+        >
+          3. Go Live (Production)
         </button>
       </div>
 
@@ -460,6 +525,23 @@ export default function OnboardingPage() {
 
                   <div>
                     <label className="block text-sm font-semibold text-gray-900 mb-2">
+                      Property ID (Internal Reference){" "}
+                      <span className="text-gray-400 font-normal">
+                        (Optional)
+                      </span>
+                    </label>
+                    <input
+                      {...registerOnboard("propertyId")}
+                      className="w-full px-4 py-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-colors"
+                      placeholder="e.g. PROP-001"
+                    />
+                    <p className="text-[11px] text-gray-500 italic mt-1">
+                      This ID is stored locally and NOT sent to ZATCA.
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-900 mb-2">
                       Legal Location Address{" "}
                       <span className="text-red-500">*</span>
                     </label>
@@ -623,6 +705,96 @@ export default function OnboardingPage() {
                     {loading
                       ? "Issuing CSID..."
                       : "Generate Compliance Certificate"}
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {activeTab === "production" && (
+              <form
+                onSubmit={handleSubmitProduction(onSubmitProduction)}
+                className="space-y-6"
+              >
+                <div className="bg-green-50 p-4 rounded-lg border border-green-200 mb-6">
+                  <h4 className="text-green-800 font-bold flex items-center gap-2">
+                    <span className="text-xl">🚀</span> Going Live?
+                  </h4>
+                  <p className="text-green-700 text-sm mt-1">
+                    Only perform this step after you have{" "}
+                    <strong>successfully PASSED</strong> the compliance checks
+                    in the Compliance Verification page. Once you get a
+                    Production CSID, you can start reporting real invoices.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 mb-2">
+                    Select Property to Go Live{" "}
+                    <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    {...registerProduction("commonName", { required: true })}
+                    className="w-full px-4 py-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent transition-colors"
+                  >
+                    <option value="">Select a Hotel...</option>
+                    {hotels.map((hotel) => (
+                      // Only show hotels that have at least Compliance CSID
+                      <option key={hotel.slug} value={hotel.slug}>
+                        {hotel.production ? "✅ [LIVE] " : "⚠️ [TEST] "}
+                        {hotel.organizationName} ({hotel.slug})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <label className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors">
+                  <input
+                    type="checkbox"
+                    {...registerProduction("production")}
+                    className="w-5 h-5 mt-0.5 text-green-600 rounded border-gray-300 focus:ring-green-500 shrink-0"
+                  />
+                  <div>
+                    <span className="block text-sm font-semibold text-gray-900 mb-1">
+                      Use Production URL
+                    </span>
+                    <span className="block text-xs text-gray-600">
+                      Check this if you are connecting to the real ZATCA
+                      Production environment. Leave unchecked for
+                      Simulation/Sandbox (Developer Pro).
+                    </span>
+                  </div>
+                </label>
+
+                <div className="pt-6">
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full px-8 py-3 bg-green-600 text-white rounded-lg text-sm font-bold hover:bg-green-700 transition-colors shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {loading && (
+                      <svg
+                        className="animate-spin h-4 w-4 text-white"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                          fill="none"
+                        />
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        />
+                      </svg>
+                    )}
+                    {loading
+                      ? "Requesting Production CSID..."
+                      : "Get Production CSID (Go Live)"}
                   </button>
                 </div>
               </form>

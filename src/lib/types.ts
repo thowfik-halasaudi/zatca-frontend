@@ -17,11 +17,17 @@ export interface OnboardEgsDto {
   locationAddress: string;
   industryBusinessCategory: string;
   production?: boolean;
+  propertyId?: string;
 }
 
 export interface IssueCsidDto {
   commonName: string;
   otp: string;
+  production?: boolean;
+}
+
+export interface IssueProductionCsidDto {
+  commonName: string;
   production?: boolean;
 }
 
