@@ -93,6 +93,10 @@ export const invoiceApi = {
     apiClient
       .get<any>(`/invoice/${invoiceNumber}/zatca-response`)
       .then((r) => r.data),
+
+  /** Gets the PDF download URL for an invoice */
+  getPdfUrl: (invoiceNumber: string) =>
+    `${API_URL}/invoice/${invoiceNumber}/pdf`,
 };
 
 export default apiClient;

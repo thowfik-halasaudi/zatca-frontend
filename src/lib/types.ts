@@ -108,12 +108,31 @@ export interface TotalsDto {
   payableAmount: number;
 }
 
+export interface PrepaymentDto {
+  prepaidAmount: number;
+  prepaidAmountExVAT: number;
+  prepaidVATAmount: number;
+  prepaymentInvoiceId?: string;
+  prepaymentDate?: string;
+}
+
+export interface AllowanceChargeDto {
+  chargeIndicator: boolean;
+  reasonCode?: string;
+  reason?: string;
+  amount: number;
+  vatPercent?: number;
+  taxCategory?: string;
+}
+
 export interface SignInvoiceDto {
   egs: EgsDto;
   invoice: InvoiceMetaDto;
   supplier: SupplierDto;
   customer?: CustomerDto;
   lineItems: InvoiceLineItemDto[];
+  prepayment?: PrepaymentDto;
+  allowanceCharges?: AllowanceChargeDto[];
   totals: TotalsDto;
 }
 

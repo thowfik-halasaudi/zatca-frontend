@@ -18,6 +18,7 @@ import {
   XCircle,
   Clock,
   LayoutDashboard,
+  Download,
 } from "lucide-react";
 
 export default function InvoiceDetailPage() {
@@ -27,6 +28,8 @@ export default function InvoiceDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"user" | "developer">("user");
+  const [downloadingPDF, setDownloadingPDF] = useState(false);
+  const [pdfError, setPdfError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchInvoice = async () => {
@@ -45,6 +48,37 @@ export default function InvoiceDetailPage() {
     };
     if (invoiceId) fetchInvoice();
   }, [invoiceId]);
+
+  const handleDownloadPDF = async () => {
+    if (!invoice) return;
+
+    setDownloadingPDF(true);
+    setPdfError(null);
+
+    try {
+      const pdfUrl = invoiceApi.getPdfUrl(invoice.invoiceNumber);
+      const response = await fetch(pdfUrl);
+
+      if (!response.ok) {
+        throw new Error("Failed to generate PDF");
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `inv-${invoice.invoiceNumber.toLowerCase()}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (err: any) {
+      setPdfError(err.message || "Failed to download PDF");
+      console.error("PDF download error:", err);
+    } finally {
+      setDownloadingPDF(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -78,6 +112,22 @@ export default function InvoiceDetailPage() {
       </div>
     );
   }
+
+  const getInvoiceTypeLabel = (typeCode?: string) => {
+    const typeMap: Record<string, string> = {
+      "388": "Tax Invoice",
+      "381": "Credit Note",
+      "383": "Debit Note",
+      "386": "Advance Payment",
+    };
+    return typeMap[typeCode || ""] || "Invoice";
+  };
+
+  const getInvoiceCategory = (typeCodeName?: string) => {
+    if (typeCodeName?.startsWith("01")) return "Standard (B2B)";
+    if (typeCodeName?.startsWith("02")) return "Simplified (B2C)";
+    return "Unknown";
+  };
 
   const getStatusBadge = (status: string) => {
     const s = status?.toUpperCase();
@@ -133,29 +183,61 @@ export default function InvoiceDetailPage() {
           </div>
         </div>
 
-        <div className="flex items-center bg-gray-100 p-1 rounded-lg border border-gray-200 self-start md:self-auto">
+        <div className="flex items-center gap-3">
+          {/* PDF Download Button */}
           <button
-            onClick={() => setViewMode("user")}
-            className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
-              viewMode === "user"
-                ? "bg-white text-gray-900 shadow-sm"
-                : "text-gray-500 hover:text-gray-700"
-            }`}
+            onClick={handleDownloadPDF}
+            disabled={downloadingPDF}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-lg text-sm font-medium transition-colors shadow-sm disabled:cursor-not-allowed"
           >
-            <User className="w-4 h-4" /> Standard View
+            {downloadingPDF ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                Generating...
+              </>
+            ) : (
+              <>
+                <Download className="w-4 h-4" />
+                Download PDF
+              </>
+            )}
           </button>
-          <button
-            onClick={() => setViewMode("developer")}
-            className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
-              viewMode === "developer"
-                ? "bg-white text-gray-900 shadow-sm"
-                : "text-gray-500 hover:text-gray-700"
-            }`}
-          >
-            <Code className="w-4 h-4" /> Technical Data
-          </button>
+
+          {/* View Mode Toggle */}
+          <div className="flex items-center bg-gray-100 p-1 rounded-lg border border-gray-200 self-start md:self-auto">
+            <button
+              onClick={() => setViewMode("user")}
+              className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                viewMode === "user"
+                  ? "bg-white text-gray-900 shadow-sm"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              <User className="w-4 h-4" /> Standard View
+            </button>
+            <button
+              onClick={() => setViewMode("developer")}
+              className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                viewMode === "developer"
+                  ? "bg-white text-gray-900 shadow-sm"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              <Code className="w-4 h-4" /> Technical Data
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* PDF Error Message */}
+      {pdfError && (
+        <div className="p-4 bg-red-50 border border-red-100 rounded-lg text-sm text-red-600 flex items-start gap-2">
+          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+          <div>
+            <strong>PDF Download Failed:</strong> {pdfError}
+          </div>
+        </div>
+      )}
 
       {viewMode === "user" ? (
         <div className="grid lg:grid-cols-3 gap-8 items-start">
@@ -163,21 +245,28 @@ export default function InvoiceDetailPage() {
           <div className="lg:col-span-2 space-y-6">
             {/* Invoice Card */}
             <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-              <div className="p-6 border-b border-gray-100 flex justify-between items-start">
-                <div className="space-y-1">
-                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    {invoice.invoiceCategory}
-                  </span>
-                  <div className="mt-2 text-3xl font-bold text-gray-900">
-                    {invoice.totalAmount.toLocaleString(undefined, {
-                      minimumFractionDigits: 2,
-                    })}{" "}
-                    <span className="text-sm font-normal text-gray-500">
-                      SAR
-                    </span>
+              <div className="p-6 border-b border-gray-100">
+                <div className="flex justify-between items-start mb-4">
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold text-blue-600 uppercase tracking-wider bg-blue-50 px-2 py-1 rounded border border-blue-100">
+                        {getInvoiceTypeLabel(invoice.invoiceTypeCode)}
+                      </span>
+                      <span className="text-xs font-medium text-gray-600">
+                        {getInvoiceCategory(invoice.invoiceTypeCodeName)}
+                      </span>
+                    </div>
+                    <div className="text-3xl font-bold text-gray-900">
+                      {invoice.totalAmount.toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                      })}{" "}
+                      <span className="text-sm font-normal text-gray-500">
+                        SAR
+                      </span>
+                    </div>
                   </div>
+                  <div>{getStatusBadge(invoice.status)}</div>
                 </div>
-                <div>{getStatusBadge(invoice.status)}</div>
               </div>
 
               {/* Parties */}

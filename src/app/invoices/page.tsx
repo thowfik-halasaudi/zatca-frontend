@@ -270,6 +270,7 @@ export default function InvoicesPage() {
       invoice: {
         currency: "SAR",
         invoiceTypeCode: "388",
+        invoiceTypeCodeName: "0211010",
         paymentMeansCode: "10", // Cash
       },
       supplier: {
@@ -296,6 +297,8 @@ export default function InvoicesPage() {
           taxCategory: "S",
         },
       ],
+      prepayment: undefined,
+      allowanceCharges: undefined,
     },
   });
 
@@ -486,26 +489,62 @@ export default function InvoicesPage() {
                       {...register("invoice.invoiceTypeCode")}
                       className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 transition-colors"
                     >
-                      <option value="388">Tax Invoice</option>
-                      <option value="381">Credit Note</option>
-                      <option value="383">Debit Note</option>
+                      <option value="388">Tax Invoice (388)</option>
+                      <option value="381">Credit Note (381)</option>
+                      <option value="383">Debit Note (383)</option>
+                      <option value="386">Advance Payment (386)</option>
                     </select>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {invoiceTypeCode === "381" && "Refund or return invoice"}
+                      {invoiceTypeCode === "383" &&
+                        "Additional charges invoice"}
+                      {invoiceTypeCode === "386" && "Prepayment invoice"}
+                      {invoiceTypeCode === "388" && "Standard tax invoice"}
+                    </p>
                   </div>
-                  {invoiceTypeCode !== "388" && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Ref ID <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        {...register("invoice.billingReferenceId", {
-                          required: true,
-                        })}
-                        className="w-full px-4 py-2 border border-blue-200 bg-blue-50 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
-                        placeholder="Original Inv#"
-                      />
-                    </div>
-                  )}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Invoice Category
+                    </label>
+                    <select
+                      {...register("invoice.invoiceTypeCodeName")}
+                      className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 transition-colors"
+                    >
+                      <option value="0111010">Standard (B2B)</option>
+                      <option value="0211010">Simplified (B2C)</option>
+                    </select>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {watch("invoice.invoiceTypeCodeName")?.startsWith("01")
+                        ? "Requires customer VAT & address"
+                        : "Minimal customer information"}
+                    </p>
+                  </div>
                 </div>
+
+                {/* Conditional Fields based on Invoice Type */}
+                {(invoiceTypeCode === "381" || invoiceTypeCode === "383") && (
+                  <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-500 rounded-lg animate-in fade-in slide-in-from-top-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Original Invoice Reference{" "}
+                      <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      {...register("invoice.billingReferenceId", {
+                        required:
+                          invoiceTypeCode === "381" ||
+                          invoiceTypeCode === "383",
+                      })}
+                      className="w-full px-4 py-2 border border-blue-200 bg-white rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
+                      placeholder="Enter original invoice number (e.g., INV-2024-001)"
+                    />
+                    <p className="text-xs text-blue-600 mt-2 flex items-center gap-1">
+                      <span className="inline-block w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
+                      {invoiceTypeCode === "381"
+                        ? "Reference to the invoice being credited (refund/return)"
+                        : "Reference to the invoice being debited (additional charges)"}
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -593,7 +632,11 @@ export default function InvoicesPage() {
                         </label>
                         <input
                           {...register("customer.vatNumber", {
-                            required: true,
+                            required:
+                              customerType === "B2B" &&
+                              watch("invoice.invoiceTypeCodeName")?.startsWith(
+                                "01"
+                              ),
                             minLength: 15,
                             maxLength: 15,
                           })}
@@ -609,7 +652,11 @@ export default function InvoicesPage() {
                           </label>
                           <input
                             {...register("customer.address.street", {
-                              required: true,
+                              required:
+                                customerType === "B2B" &&
+                                watch(
+                                  "invoice.invoiceTypeCodeName"
+                                )?.startsWith("01"),
                             })}
                             className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
                             placeholder="Building No, Street Name"
@@ -621,7 +668,11 @@ export default function InvoicesPage() {
                           </label>
                           <input
                             {...register("customer.address.city", {
-                              required: true,
+                              required:
+                                customerType === "B2B" &&
+                                watch(
+                                  "invoice.invoiceTypeCodeName"
+                                )?.startsWith("01"),
                             })}
                             className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
                             placeholder="Riyadh"
@@ -633,7 +684,11 @@ export default function InvoicesPage() {
                           </label>
                           <input
                             {...register("customer.address.postalCode", {
-                              required: true,
+                              required:
+                                customerType === "B2B" &&
+                                watch(
+                                  "invoice.invoiceTypeCodeName"
+                                )?.startsWith("01"),
                             })}
                             className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
                             placeholder="12345"
@@ -645,6 +700,102 @@ export default function InvoicesPage() {
                 </div>
               </div>
             </div>
+
+            {/* 2.5. Advance Payment Fields */}
+            {invoiceTypeCode === "386" && (
+              <div className="bg-gradient-to-br from-purple-50 to-blue-50 border border-purple-200 rounded-xl p-6 shadow-sm animate-in fade-in slide-in-from-top-2">
+                <h3 className="text-xs font-semibold text-purple-700 uppercase tracking-wider mb-4 border-b border-purple-100 pb-2 flex items-center gap-2">
+                  <CreditCard className="w-4 h-4" /> Advance Payment Details
+                </h3>
+                <div className="grid md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-2">
+                      Total Prepaid Amount (incl. VAT){" "}
+                      <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      {...register("prepayment.prepaidAmount", {
+                        valueAsNumber: true,
+                        onChange: (e) => {
+                          const total = parseFloat(e.target.value) || 0;
+                          const vatAmount = total * (15 / 115);
+                          const exVAT = total - vatAmount;
+                          setValue(
+                            "prepayment.prepaidVATAmount",
+                            parseFloat(vatAmount.toFixed(2))
+                          );
+                          setValue(
+                            "prepayment.prepaidAmountExVAT",
+                            parseFloat(exVAT.toFixed(2))
+                          );
+                        },
+                      })}
+                      className="w-full px-3 py-2 border border-purple-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-600"
+                      placeholder="1150.00"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-2">
+                      Amount Ex. VAT (auto)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      {...register("prepayment.prepaidAmountExVAT", {
+                        valueAsNumber: true,
+                      })}
+                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-600"
+                      placeholder="1000.00"
+                      readOnly
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-2">
+                      VAT Amount (auto)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      {...register("prepayment.prepaidVATAmount", {
+                        valueAsNumber: true,
+                      })}
+                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-600"
+                      placeholder="150.00"
+                      readOnly
+                    />
+                  </div>
+                </div>
+                <div className="grid md:grid-cols-2 gap-4 mt-4">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-2">
+                      Prepayment Invoice ID (optional)
+                    </label>
+                    <input
+                      type="text"
+                      {...register("prepayment.prepaymentInvoiceId")}
+                      className="w-full px-3 py-2 border border-purple-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-600"
+                      placeholder="Reference invoice number"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-2">
+                      Payment Date (optional)
+                    </label>
+                    <input
+                      type="date"
+                      {...register("prepayment.prepaymentDate")}
+                      className="w-full px-3 py-2 border border-purple-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-600"
+                    />
+                  </div>
+                </div>
+                <p className="text-xs text-purple-600 mt-3 bg-purple-50 p-2 rounded border border-purple-100">
+                  💡 The VAT split is auto-calculated at 15%. Total prepaid
+                  amount will be deducted from the final payable amount.
+                </p>
+              </div>
+            )}
 
             {/* 3. Line Items */}
             <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
