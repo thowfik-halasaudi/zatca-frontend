@@ -7,6 +7,27 @@ import type { OnboardEgsDto, IssueCsidDto, EgsListItem } from "@/lib/types";
 
 const ONBOARD_PRESETS = [
   {
+    name: "TJ Residency (New)",
+    data: {
+      commonName: "TJRESIDENCY",
+      serialNumber: "1-TJ|2-TJS|3-001",
+      organizationIdentifier: "361004701340003",
+      organizationUnitName: "Riyadh Branch",
+      organizationName: "TJ Residency Hotel",
+      countryName: "SA",
+      invoiceType: "1100",
+      industryBusinessCategory: "Hotels and Accommodation",
+      production: false,
+      propertyId: "TJ-001",
+      // Detailed Address
+      street: "Olaya Street",
+      buildingNumber: "3456",
+      city: "Riyadh",
+      district: "Al Olaya",
+      postalCode: "12211",
+    },
+  },
+  {
     name: "Hilton Group (Sample)",
     data: {
       commonName: "HILTONGROUP",
@@ -16,10 +37,14 @@ const ONBOARD_PRESETS = [
       organizationName: "Hilton Worldwide Saudi Arabia",
       countryName: "SA",
       invoiceType: "1100",
-      locationAddress: "15 King Fahd Road, Riyadh, KSA",
       industryBusinessCategory: "Hotels and Accommodation",
       production: false,
       propertyId: "HLT-001",
+      street: "King Fahd Road",
+      buildingNumber: "6623",
+      city: "Riyadh",
+      district: "Al Shohadaa",
+      postalCode: "13241",
     },
   },
   {
@@ -32,10 +57,14 @@ const ONBOARD_PRESETS = [
       organizationName: "Marriott International Saudi Arabia",
       countryName: "SA",
       invoiceType: "1100",
-      locationAddress: "Diplomatic Quarter, Riyadh, KSA",
       industryBusinessCategory: "Hotels and Accommodation",
       production: false,
       propertyId: "MAR-001",
+      street: "Abdullah Al Sahmi Street",
+      buildingNumber: "3234",
+      city: "Riyadh",
+      district: "Al Safarat",
+      postalCode: "12512",
     },
   },
   {
@@ -48,10 +77,14 @@ const ONBOARD_PRESETS = [
       organizationName: "Accor Hotels Saudi Arabia",
       countryName: "SA",
       invoiceType: "1100",
-      locationAddress: "Olaya Street, Riyadh, KSA",
       industryBusinessCategory: "Hotels and Accommodation",
       production: false,
       propertyId: "ACC-001",
+      street: "Olaya Street",
+      buildingNumber: "9032",
+      city: "Riyadh",
+      district: "Al Olaya",
+      postalCode: "12213",
     },
   },
   {
@@ -64,10 +97,14 @@ const ONBOARD_PRESETS = [
       organizationName: "Radisson Hotel Group Saudi Arabia",
       countryName: "SA",
       invoiceType: "1100",
-      locationAddress: "King Abdullah Road, Riyadh, KSA",
       industryBusinessCategory: "Hotels and Accommodation",
       production: false,
       propertyId: "RAD-001",
+      street: "King Abdullah Road",
+      buildingNumber: "2345",
+      city: "Riyadh",
+      district: "King Abdullah",
+      postalCode: "12345",
     },
   },
   {
@@ -80,10 +117,14 @@ const ONBOARD_PRESETS = [
       organizationName: "InterContinental Hotels Group Saudi Arabia",
       countryName: "SA",
       invoiceType: "1100",
-      locationAddress: "Al Maather Street, Riyadh, KSA",
       industryBusinessCategory: "Hotels and Accommodation",
       production: false,
       propertyId: "IHG-001",
+      street: "Al Maather Street",
+      buildingNumber: "4567",
+      city: "Riyadh",
+      district: "Al Maather",
+      postalCode: "11111",
     },
   },
   {
@@ -96,10 +137,14 @@ const ONBOARD_PRESETS = [
       organizationName: "Hyatt Hotels Saudi Arabia",
       countryName: "SA",
       invoiceType: "1100",
-      locationAddress: "Olaya Street, Riyadh, KSA",
       industryBusinessCategory: "Hotels and Accommodation",
       production: false,
       propertyId: "HYT-001",
+      street: "Olaya Street",
+      buildingNumber: "7890",
+      city: "Riyadh",
+      district: "Al Olaya",
+      postalCode: "12214",
     },
   },
 ];
@@ -540,18 +585,86 @@ export default function OnboardingPage() {
                     </p>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-900 mb-2">
-                      Legal Location Address{" "}
-                      <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      {...registerOnboard("locationAddress", {
-                        required: true,
-                      })}
-                      className="w-full px-4 py-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-colors"
-                      placeholder="King Fahd Road, Riyadh, KSA"
-                    />
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-900 mb-2">
+                        Street Name <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        {...registerOnboard("street", { required: true })}
+                        className="w-full px-4 py-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-colors"
+                        placeholder="King Fahd Road"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-900 mb-2">
+                        Building Number <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        {...registerOnboard("buildingNumber", {
+                          required: true,
+                          pattern: {
+                            value: /^[0-9]{4}$/,
+                            message: "Must be 4 digits",
+                          },
+                        })}
+                        className="w-full px-4 py-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-colors"
+                        placeholder="1234"
+                      />
+                      {errorsOnboard.buildingNumber && (
+                        <span className="text-xs text-red-500 mt-1 block">
+                          {errorsOnboard.buildingNumber.message || "Required"}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-900 mb-2">
+                        City <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        {...registerOnboard("city", { required: true })}
+                        className="w-full px-4 py-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-colors"
+                        placeholder="Riyadh"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-900 mb-2">
+                        District <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        {...registerOnboard("district", { required: true })}
+                        className="w-full px-4 py-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-colors"
+                        placeholder="Al Olaya"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-900 mb-2">
+                        Postal Code <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        {...registerOnboard("postalCode", {
+                          required: true,
+                          pattern: {
+                            value: /^[0-9]{5}$/,
+                            message: "Must be 5 digits",
+                          },
+                        })}
+                        className="w-full px-4 py-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-colors"
+                        placeholder="12345"
+                      />
+                      {errorsOnboard.postalCode && (
+                        <span className="text-xs text-red-500 mt-1 block">
+                          {errorsOnboard.postalCode.message || "Required"}
+                        </span>
+                      )}
+                    </div>
+                    {/* Hidden legacy field or just omit if backend handles optional */}
                   </div>
 
                   <label className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors">

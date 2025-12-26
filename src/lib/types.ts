@@ -14,7 +14,12 @@ export interface OnboardEgsDto {
   organizationName: string;
   countryName: string;
   invoiceType: string;
-  locationAddress: string;
+  locationAddress?: string; // Made optional
+  street?: string;
+  buildingNumber?: string;
+  city?: string;
+  district?: string;
+  postalCode?: string;
   industryBusinessCategory: string;
   production?: boolean;
   propertyId?: string;

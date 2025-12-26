@@ -241,6 +241,10 @@ export default function InvoicesPage() {
   const [error, setError] = useState<string | null>(null);
   const [hotels, setHotels] = useState<EgsListItem[]>([]);
 
+  // New State for Invoice Dropdown
+  const [existingInvoices, setExistingInvoices] = useState<any[]>([]);
+  const [loadingCommonInvoices, setLoadingCommonInvoices] = useState(false);
+
   useEffect(() => {
     const fetchHotels = async () => {
       try {
@@ -321,6 +325,14 @@ export default function InvoicesPage() {
         setValue("egs.vatNumber", hotel.vatNumber);
         setValue("supplier.vatNumber", hotel.vatNumber);
         setValue("supplier.registrationName", hotel.organizationName);
+
+        // Fetch invoices for this EGS to populate the Reference dropdown
+        setLoadingCommonInvoices(true);
+        invoiceApi
+          .listInvoices(hotel.slug)
+          .then((invs) => setExistingInvoices(invs))
+          .catch((err) => console.error("Failed to load invoices", err))
+          .finally(() => setLoadingCommonInvoices(false));
       }
     }
   }, [selectedCommonName, hotels, setValue]);
@@ -360,6 +372,16 @@ export default function InvoicesPage() {
   };
 
   const invoiceTypeCode = watch("invoice.invoiceTypeCode");
+  const invoiceCategory = watch("invoice.invoiceTypeCodeName");
+
+  // Automatically set customer type based on Invoice Category (Standard -> B2B, Simplified -> B2C)
+  useEffect(() => {
+    if (invoiceCategory?.startsWith("01")) {
+      setValue("customer.type", "B2B");
+    } else {
+      setValue("customer.type", "B2C");
+    }
+  }, [invoiceCategory, setValue]);
 
   const onSubmit = async (data: SignInvoiceDto) => {
     setLoading(true);
@@ -528,15 +550,35 @@ export default function InvoicesPage() {
                       Original Invoice Reference{" "}
                       <span className="text-red-500">*</span>
                     </label>
-                    <input
-                      {...register("invoice.billingReferenceId", {
-                        required:
-                          invoiceTypeCode === "381" ||
-                          invoiceTypeCode === "383",
-                      })}
-                      className="w-full px-4 py-2 border border-blue-200 bg-white rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
-                      placeholder="Enter original invoice number (e.g., INV-2024-001)"
-                    />
+
+                    {loadingCommonInvoices ? (
+                      <div className="flex items-center gap-2 text-sm text-gray-500 py-2">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Loading previous invoices...
+                      </div>
+                    ) : (
+                      <select
+                        {...register("invoice.billingReferenceId", {
+                          required:
+                            invoiceTypeCode === "381" ||
+                            invoiceTypeCode === "383",
+                        })}
+                        className="w-full px-4 py-2 border border-blue-200 bg-white rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 appearance-none"
+                      >
+                        <option value="">Select original invoice...</option>
+                        {existingInvoices.map((inv: any) => (
+                          <option
+                            key={inv.invoiceNumber}
+                            value={inv.invoiceNumber}
+                          >
+                            {inv.invoiceNumber} — {inv.totalAmount}{" "}
+                            {inv.currency} (
+                            {new Date(inv.issueDateTime).toLocaleDateString()})
+                          </option>
+                        ))}
+                      </select>
+                    )}
+
                     <p className="text-xs text-blue-600 mt-2 flex items-center gap-1">
                       <span className="inline-block w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
                       {invoiceTypeCode === "381"
@@ -585,26 +627,6 @@ export default function InvoicesPage() {
               <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
                 <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4 border-b border-gray-100 pb-2 flex items-center justify-between">
                   Customer Info
-                  <div className="flex gap-2 text-[10px] font-medium">
-                    <label className="flex items-center gap-1 cursor-pointer">
-                      <input
-                        type="radio"
-                        value="B2C"
-                        {...register("customer.type")}
-                        className="text-blue-600 focus:ring-blue-500"
-                      />{" "}
-                      Individual
-                    </label>
-                    <label className="flex items-center gap-1 cursor-pointer">
-                      <input
-                        type="radio"
-                        value="B2B"
-                        {...register("customer.type")}
-                        className="text-blue-600 focus:ring-blue-500"
-                      />{" "}
-                      Business
-                    </label>
-                  </div>
                 </h3>
                 <div className="space-y-4">
                   <div>
@@ -647,8 +669,7 @@ export default function InvoicesPage() {
                       <div className="grid grid-cols-2 gap-3">
                         <div className="col-span-2">
                           <label className="block text-xs font-medium text-gray-500 mb-1">
-                            Street Address{" "}
-                            <span className="text-red-500">*</span>
+                            Street Name <span className="text-red-500">*</span>
                           </label>
                           <input
                             {...register("customer.address.street", {
@@ -659,9 +680,32 @@ export default function InvoicesPage() {
                                 )?.startsWith("01"),
                             })}
                             className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
-                            placeholder="Building No, Street Name"
+                            placeholder="Street Name"
                           />
                         </div>
+
+                        <div>
+                          <label className="block text-xs font-medium text-gray-500 mb-1">
+                            Building Number{" "}
+                            <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            {...register("customer.address.buildingNumber", {
+                              required:
+                                customerType === "B2B" &&
+                                watch(
+                                  "invoice.invoiceTypeCodeName"
+                                )?.startsWith("01"),
+                              pattern: {
+                                value: /^[0-9]{4}$/,
+                                message: "Must be 4 digits",
+                              },
+                            })}
+                            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
+                            placeholder="0000"
+                          />
+                        </div>
+
                         <div>
                           <label className="block text-xs font-medium text-gray-500 mb-1">
                             City <span className="text-red-500">*</span>
@@ -678,6 +722,24 @@ export default function InvoicesPage() {
                             placeholder="Riyadh"
                           />
                         </div>
+
+                        <div>
+                          <label className="block text-xs font-medium text-gray-500 mb-1">
+                            District <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            {...register("customer.address.district", {
+                              required:
+                                customerType === "B2B" &&
+                                watch(
+                                  "invoice.invoiceTypeCodeName"
+                                )?.startsWith("01"),
+                            })}
+                            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
+                            placeholder="District Name"
+                          />
+                        </div>
+
                         <div>
                           <label className="block text-xs font-medium text-gray-500 mb-1">
                             Postal Code <span className="text-red-500">*</span>
@@ -689,9 +751,31 @@ export default function InvoicesPage() {
                                 watch(
                                   "invoice.invoiceTypeCodeName"
                                 )?.startsWith("01"),
+                              pattern: {
+                                value: /^[0-9]{5}$/,
+                                message: "Must be 5 digits",
+                              },
                             })}
                             className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
-                            placeholder="12345"
+                            placeholder="00000"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-medium text-gray-500 mb-1">
+                            Country Code <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            {...register("customer.address.country", {
+                              required:
+                                customerType === "B2B" &&
+                                watch(
+                                  "invoice.invoiceTypeCodeName"
+                                )?.startsWith("01"),
+                            })}
+                            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
+                            defaultValue="SA"
+                            readOnly
                           />
                         </div>
                       </div>
