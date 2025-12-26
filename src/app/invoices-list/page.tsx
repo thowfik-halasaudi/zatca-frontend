@@ -162,7 +162,9 @@ export default function InvoicesPage() {
                       <tr
                         key={inv.invoiceNumber}
                         onClick={() =>
-                          router.push(`/invoices-list/${inv.invoiceNumber}`)
+                          router.push(
+                            `/invoices-list/${inv.invoiceNumber.toLowerCase()}`
+                          )
                         }
                         className="group hover:bg-gray-50 transition-colors cursor-pointer"
                       >

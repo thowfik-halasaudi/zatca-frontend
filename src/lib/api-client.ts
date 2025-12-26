@@ -23,6 +23,16 @@ const apiClient = axios.create({
   },
 });
 
+// Inject Language Header automatically
+apiClient.interceptors.request.use((config) => {
+  // Check if running in browser to access localStorage
+  if (typeof window !== "undefined") {
+    const lang = localStorage.getItem("lang") || "en";
+    config.headers["Accept-Language"] = lang;
+  }
+  return config;
+});
+
 /**
  * complianceApi
  *
@@ -33,39 +43,38 @@ export const complianceApi = {
   /** Handshake Step 1: Local Keys/CSR */
   onboard: (data: OnboardEgsDto) =>
     apiClient
-      .post<OnboardResponse>("/compliance/onboard", data)
-      .then((r) => r.data),
+      .post<any>("/compliance/onboard", data)
+      .then((r) => ({ ...r.data.data, message: r.data.message })),
 
   /** Handshake Step 2: ZATCA Certificate Exchange */
   issueCsid: (data: IssueCsidDto) =>
     apiClient
-      .post<CsidResponse>("/compliance/issue-csid", data)
-      .then((r) => r.data),
+      .post<any>("/compliance/issue-csid", data)
+      .then((r) => ({ ...r.data.data, message: r.data.message })),
 
   /** Step 4: Dry-run check for invoice compliance */
   checkCompliance: (data: CheckComplianceDto) =>
     apiClient
-      .post<ComplianceResponse>("/compliance/check", data)
-      .then((r) => r.data),
+      .post<any>("/compliance/check", data)
+      .then((r) => ({ ...r.data.data, message: r.data.message })),
 
   /** Retrieves all profiles registered on this microservice */
   listEgs: (commonName?: string) =>
     apiClient
-      .get<EgsListItem[]>("/compliance/egs", { params: { commonName } })
-      .then((r) => r.data),
+      .get<any>("/compliance/egs", { params: { commonName } })
+      .then((r) => r.data.data), // Arrays don't need messages usually
 
   /** Step 5: Final Submission to ZATCA Simulation/Production */
   submit: (data: SubmitZatcaDto) =>
     apiClient
-      .post<ZatcaSubmissionResponse>("/compliance/submit", data)
-      .then((r) => r.data),
+      .post<any>("/compliance/submit", data)
+      .then((r) => ({ ...r.data.data, message: r.data.message })),
 
-  /** Step 6: Exchange Compliance CSID for Production CSID */
   /** Step 6: Exchange Compliance CSID for Production CSID */
   issueProductionCsid: (data: IssueProductionCsidDto) =>
     apiClient
-      .post<CsidResponse>("/compliance/production", data)
-      .then((r) => r.data),
+      .post<any>("/compliance/production", data)
+      .then((r) => ({ ...r.data.data, message: r.data.message })),
 };
 
 /**
@@ -76,23 +85,25 @@ export const complianceApi = {
 export const invoiceApi = {
   /** Signs an invoice XML using the private key and CSR data */
   sign: (data: SignInvoiceDto) =>
-    apiClient.post<SignResponse>("/invoice/sign", data).then((r) => r.data),
+    apiClient
+      .post<any>("/invoice/sign", data)
+      .then((r) => ({ ...r.data.data, message: r.data.message })),
 
   /** Lists invoices for a given EGS Common Name */
   listInvoices: (commonName: string) =>
     apiClient
-      .get<any[]>(`/invoice`, { params: { commonName } })
-      .then((r) => r.data),
+      .get<any>(`/invoice`, { params: { commonName } })
+      .then((r) => r.data.data), // Unwrap standardized response
 
   /** Gets full detail of a single invoice by its number */
   getInvoice: (invoiceNumber: string) =>
-    apiClient.get<any>(`/invoice/${invoiceNumber}`).then((r) => r.data),
+    apiClient.get<any>(`/invoice/${invoiceNumber}`).then((r) => r.data.data), // Unwrap standardized response
 
   /** Gets raw ZATCA response for a single invoice */
   getZatcaResponse: (invoiceNumber: string) =>
     apiClient
       .get<any>(`/invoice/${invoiceNumber}/zatca-response`)
-      .then((r) => r.data),
+      .then((r) => r.data.data), // Unwrap standardized response
 
   /** Gets the PDF download URL for an invoice */
   getPdfUrl: (invoiceNumber: string) =>
