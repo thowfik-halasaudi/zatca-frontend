@@ -14,7 +14,7 @@ import type {
   IssueProductionCsidDto,
 } from "./types";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3333";
 
 const apiClient = axios.create({
   baseURL: API_URL,
